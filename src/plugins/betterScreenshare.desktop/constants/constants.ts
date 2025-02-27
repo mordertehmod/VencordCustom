@@ -29,7 +29,7 @@ export const PluginInfo = {
     },
     CONTRIBUTORS: {
         LSD𝓩𝓪𝓭𝓭𝓲: {
-            github: "https://github.com/mordertehmod/VencordCustom",
+            github: "https://github.com/mordertehmod",
             id: 413072381087580166n,
             name: "LSD𝓩𝓪𝓭𝓭𝓲"
         },
