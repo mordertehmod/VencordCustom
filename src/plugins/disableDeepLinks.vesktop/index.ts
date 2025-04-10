@@ -8,7 +8,7 @@ import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 
 export default definePlugin({
-    name: "DisableDeepLinks",
+    name: "DisableDeepLinksClient",
     description: "Disables Discord stupid DeepLinks experiment which makes the app unusable",
     authors: [Devs.Ven],
     required: true,
