@@ -199,6 +199,7 @@ function makeBypassPatches(): Omit<Patch, "plugin"> {
         { func: "canUseCustomStickersEverywhere", predicate: () => settings.store.enableStickerBypass },
         { func: "canUseHighVideoUploadQuality", predicate: () => settings.store.enableStreamQualityBypass },
         { func: "canStreamQuality", predicate: () => settings.store.enableStreamQualityBypass },
+        { func: "canUseSoundboardEverywhere" },
         { func: "canUseClientThemes" },
         { func: "canUseCustomNotificationSounds" },
         { func: "canUsePremiumAppIcons" }
