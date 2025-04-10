@@ -27,4 +27,4 @@ settings/
 src/plugins/betterMicrophone.desktop
 src/plugins/betterScreenshare.desktop
 src/plugins/fakeDeafen
-src/plugins/philsPluginLibrary
+src/plugins/philsPluginLibraryVR

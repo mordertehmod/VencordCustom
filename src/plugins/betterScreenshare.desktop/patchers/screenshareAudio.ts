@@ -18,7 +18,7 @@
 
 import { UserStore } from "@webpack/common";
 
-import { Emitter, MediaEngineStore, patchConnectionAudioTransportOptions, Patcher, types } from "../../philsPluginLibrary";
+import { Emitter, MediaEngineStore, patchConnectionAudioTransportOptions, Patcher, types } from "../../philsPluginLibraryVisualRefresh";
 import { PluginInfo } from "../constants";
 import { logger } from "../logger";
 import { screenshareAudioStore } from "../stores/screenshareAudioStore";

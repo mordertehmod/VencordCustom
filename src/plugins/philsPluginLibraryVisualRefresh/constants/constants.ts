@@ -21,7 +21,7 @@ import { Devs } from "@utils/constants";
 import * as types from "../types/constants";
 
 export const PluginInfo: types.PluginInfo = {
-    PLUGIN_NAME: "PhilsPluginLibrary",
+    PLUGIN_NAME: "PhilsPluginLibraryVisualRefresh",
     DESCRIPTION: "A library for phil's plugins",
     AUTHOR: {
         ...Devs.philhk,

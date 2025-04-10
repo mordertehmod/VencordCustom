@@ -21,7 +21,7 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-import { Emitter, MicrophoneSettingsIcon } from "../philsPluginLibrary";
+import { Emitter, MicrophoneSettingsIcon } from "../philsPluginLibraryVisualRefresh";
 import { PluginInfo } from "./constants";
 import { openMicrophoneSettingsModal } from "./modals";
 import { MicrophonePatcher } from "./patchers";
@@ -54,7 +54,7 @@ export default definePlugin({
     name: "BetterMicrophone",
     description: "This plugin allows you to further customize your microphone.",
     authors: [Devs.philhk, Devs.LSDZaddi],
-    dependencies: ["PhilsPluginLibrary"],
+    dependencies: ["PhilsPluginLibraryVisualRefresh"],
     patches: [
         {
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",

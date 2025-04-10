@@ -21,7 +21,7 @@ import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 
-import { Emitter, ScreenshareSettingsIcon } from "../philsPluginLibrary";
+import { Emitter, ScreenshareSettingsIcon } from "../philsPluginLibraryVisualRefresh";
 import { PluginInfo } from "./constants";
 import { openScreenshareModal } from "./modals";
 import { ScreenshareAudioPatcher, ScreensharePatcher } from "./patchers";
@@ -46,7 +46,7 @@ export default definePlugin({
     name: "BetterScreenshare",
     description: "This plugin allows you to further customize your screen sharing.",
     authors: [Devs.philhk, Devs.LSDZaddi],
-    dependencies: ["PhilsPluginLibrary"],
+    dependencies: ["PhilsPluginLibraryVisualRefresh"],
     patches: [
         {
             find: "GoLiveModal: user cannot be undefined", // Module: 60594; canaryRelease: 364525; L431

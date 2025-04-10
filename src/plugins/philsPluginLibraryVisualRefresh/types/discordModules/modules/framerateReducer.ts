@@ -16,9 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { LazyComponent } from "@utils/react";
-import { findByCode } from "@webpack";
+import { Connection, VideoQualityManager } from ".";
 
-import { types } from "../";
+export type FramerateReducer = FramerateReducer_ & {
+    connection: Connection;
+    sinkWants: VideoQualityManager;
+    framerateReductionTimeout?: number;
+    handleSelfMute: (...args: any[]) => any;
+    handleSpeaking: (...args: any[]) => any;
+    __proto__: FramerateReducer_;
+};
 
-export const UserSummaryItem = LazyComponent<React.ComponentProps<types.UserSummaryItem>>(() => findByCode("defaultRenderUser", "showDefaultAvatarsForNullUsers"));
+export interface FramerateReducer_ {
+    destroy: (...args: any[]) => any;
+    destroyFramerateScaleFactorTimers: (...args: any[]) => any;
+    initialize: (...args: any[]) => any;
+    updateRemoteWantsFramerate: (...args: any[]) => any;
+    userSpeakingChange: (...args: any[]) => any;
+}

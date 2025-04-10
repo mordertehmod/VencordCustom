@@ -31,8 +31,8 @@ import {
     SettingsModalProfilesCard,
     validateNumberInput,
     validateTextInputNumber
-} from "../../philsPluginLibrary";
-import { Styles } from "../../philsPluginLibrary/styles";
+} from "../../philsPluginLibraryVisualRefresh";
+import { Styles } from "../../philsPluginLibraryVisualRefresh/styles";
 import { MicrophoneProfile, MicrophoneStore } from "../stores";
 
 const simpleVoiceBitrates: readonly SelectOption[] = [

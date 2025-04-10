@@ -35,8 +35,8 @@ import {
     types,
     validateNumberInput,
     validateTextInputNumber
-} from "../../philsPluginLibrary";
-import { Styles } from "../../philsPluginLibrary/styles";
+} from "../../philsPluginLibraryVisualRefresh";
+import { Styles } from "../../philsPluginLibraryVisualRefresh/styles";
 import { PluginInfo } from "../constants";
 import { ScreenshareAudioProfile, ScreenshareAudioStore, ScreenshareProfile, ScreenshareStore } from "../stores";
 

@@ -121,7 +121,7 @@ const settings = definePluginSettings({
 export default definePlugin({
     name: "FakeDeafen",
     description: "You're deafened but you're not",
-    dependencies: ["PhilsPluginLibrary"],
+    dependencies: ["PhilsPluginLibraryVisualRefresh"],
     authors: [Devs.philhk, Devs.LSDZaddi],
 
     patches: [

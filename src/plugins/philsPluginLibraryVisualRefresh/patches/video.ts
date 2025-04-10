@@ -20,7 +20,7 @@ import { Logger } from "@utils/Logger";
 import { lodash } from "@webpack/common";
 
 import { ScreenshareProfile, ScreenshareStore } from "../../betterScreenshare.desktop/stores";
-import { ProfilableStore, replaceObjectValuesIfExist, types, utils } from "../../philsPluginLibrary";
+import { ProfilableStore, replaceObjectValuesIfExist, types, utils } from "../../philsPluginLibraryVisualRefresh";
 
 
 export function getDefaultVideoTransportationOptions(connection: types.Connection) {

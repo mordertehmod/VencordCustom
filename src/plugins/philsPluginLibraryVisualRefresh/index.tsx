@@ -21,7 +21,7 @@ import definePlugin from "@utils/types";
 
 
 const plugin = definePlugin({
-    name: "PhilsPluginLibrary",
+    name: "PhilsPluginLibraryVisualRefresh",
     description: "A library for phil's plugins",
     authors: [Devs.philhk, Devs.LSDZaddi],
     patches: [

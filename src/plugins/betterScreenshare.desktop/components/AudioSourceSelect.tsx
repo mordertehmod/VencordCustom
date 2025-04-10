@@ -19,7 +19,7 @@
 import { Select, useEffect, useState } from "@webpack/common";
 import React from "react";
 
-import { MediaEngineStore, types } from "../../philsPluginLibrary";
+import { MediaEngineStore, types } from "../../philsPluginLibraryVisualRefresh";
 import { screenshareStore } from "../stores";
 
 export const AudioSourceSelect = (props?: React.ComponentProps<typeof Select>) => {
