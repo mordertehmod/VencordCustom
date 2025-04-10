@@ -23,3 +23,8 @@ src/userplugins
 
 ExtensionCache/
 settings/
+
+src/plugins/betterMicrophone.desktop
+src/plugins/betterScreenshare.desktop
+src/plugins/fakeDeafen
+src/plugins/philsPluginLibrary
