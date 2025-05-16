@@ -43,6 +43,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "Vee",
         id: 343383572805058560n
     },
+    LSDZaddi: {
+        name: "LSD𝓩𝓪𝓭𝓭𝓲", 
+        id: 413072381087580166n
+    },
     Arjix: {
         name: "ArjixWasTaken",
         id: 674710789138939916n,
@@ -79,6 +83,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     Samu: {
         name: "Samu",
         id: 702973430449832038n,
+    },
+    Max: {
+        name: "Max",
+        id: 1189527130611138663n,
     },
     Nyako: {
         name: "nyako",
@@ -320,6 +328,14 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     amia: {
         name: "amia",
         id: 142007603549962240n
+    },
+    philhk: {
+        name: "philhk",
+        id: 305288513941667851n
+    },
+    Fres: {
+        name: "fres",
+        id: 843448897737064448n
     },
     phil: {
         name: "phil",
