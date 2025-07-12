@@ -21,6 +21,7 @@
 import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
+import { SelectOption } from "@webpack/types";
 
 
 const settings = definePluginSettings({
@@ -41,6 +42,12 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         default: true,
         restartNeeded: true
+    },
+    moreClipFramerates: {
+        description: "Change clip framerate. (UP TO 240FPS!!)",
+        type: OptionType.BOOLEAN,
+        default: true,
+        restartNeeded: true
     }
 });
 
@@ -49,6 +56,7 @@ export default definePlugin({
     authors: [
         Devs.LSDZaddi
     ],
+    description: "Enables extra clipping options for streams.",
     settings,
     patches: [
         {
@@ -69,20 +77,35 @@ export default definePlugin({
         },
         {
             predicate: () => settings.store.moreClipDurations,
-            find: "MINUTES_2=",
+            find: "clips_recording_settings",
             replacement: {
-                match: /((\i)\[(\i)\.MINUTES_2=2\*(\i)\.(\i)\.(\i)\.MINUTE\]="MINUTES_2",)/,
-                replace: "$&$2[$3.MINUTES_3=3*$4.$5.$6.MINUTE]=\"MINUTES_3\",$2[$3.MINUTES_5=5*$4.$5.$6.MINUTE]=\"MINUTES_5\","
+                match: /\[\{.{0,10}\i.\i.SECONDS_30.{0,250}\}\]/,
+                replace: "$self.patchDurations($&)"
             }
         },
         {
-            predicate: () => settings.store.moreClipDurations,
-            find: "count:2})",
+            predicate: () => settings.store.moreClipFramerates,
+            find: "clips_recording_settings",
             replacement: {
-                match: /\{value:(\i)\.(\i)\.MINUTES_2,label:(\i)\.(\i)\.formatToPlainString\((\i)\.(\i)\.(\w+),\{count:2\}\)\}/,
-                replace: "$&,{value:$1.$2.MINUTES_3,label:$3.$4.formatToPlainString($5.$6.$7,{count:3})},{value:$1.$2.MINUTES_5,label:$3.$4.formatToPlainString($5.$6.$7,{count:5})}"
+                match: /\[\{.{0,10}\i.\i.FPS_15.{0,250}\}\]/,
+                replace: "$self.patchFPS($&)"
             }
-        }
+        },
     ],
-    description: "Enables extra clipping options for streams."
+    patchDurations(timeslots: SelectOption[]) {
+        const newTimeslots = [...timeslots];
+        const extraTimeslots = [3, 5, 7, 10];
+
+        extraTimeslots.forEach(timeslot => newTimeslots.push({ value: timeslot * 60000, label: `${timeslot} Minutes` }));
+
+        return newTimeslots;
+    },
+    patchFPS(framerates: SelectOption[]) {
+        const extraFramerates = [...framerates];
+        const moFRAMES = [45, 90, 120, 144, 165, 240];
+
+        moFRAMES.forEach(framerate => extraFramerates.push({ value: framerate, label: `${framerate}FPS` }));
+
+        return extraFramerates.toSorted();
+    }
 });
