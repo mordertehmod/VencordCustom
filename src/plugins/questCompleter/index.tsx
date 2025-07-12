@@ -20,9 +20,7 @@ import { showNotification } from "@api/Notifications";
 import { Devs } from "@utils/constants";
 import definePlugin from "@utils/types";
 import { findByCode, findByProps, findStoreLazy } from "@webpack";
-import { ChannelStore, FluxDispatcher, GuildChannelStore, RestAPI, showToast, Text, UserStore } from "@webpack/common";
-
-import { IconWithTooltip, QuestIcon } from "./components/Icons";
+import { ChannelStore, FluxDispatcher, GuildChannelStore, RestAPI, showToast, Text } from "@webpack/common";
 
 const FLUX_EVENTS = {
     RUNNING_GAMES: "RUNNING_GAMES_CHANGE",
@@ -64,9 +62,7 @@ function encodeStreamKey(e): string {
     const { streamType: t, guildId: n, channelId: r, ownerId: s } = e;
     switch (t) {
         case "guild":
-            if (!n) {
-                throw new Error("guildId is required for streamType GUILD");
-            }
+            if (!n) throw new Error("guildId is required for streamType GUILD");
             return [t, n, r, s].join(":");
         case "call":
             return [t, r, s].join(":");
@@ -115,7 +111,7 @@ function getQuestImageConfig(questId: string) {
 
 export default definePlugin({
     name: "QuestCompleter",
-    description: "A plugin to complete quests without having the game.",
+    description: "Auto complete quests without any requirements.",
     authors: [Devs.LSDZaddi],
     patches: [
         {
@@ -126,6 +122,7 @@ export default definePlugin({
             }
         }
     ],
+
     settingsAboutComponent() {
         return (
             <>
@@ -158,36 +155,42 @@ export default definePlugin({
 
     start() { },
 
-    openCompleteQuest(questId?: string) {
+    stop() {
+        runningQuests.forEach(quest => {
+            if (quest.interval) clearInterval(quest.interval);
+            if (quest.cleanup) quest.cleanup();
+        });
+        runningQuests.clear();
+    },
+
+    async openCompleteQuest(questId?: string) {
         const quest = questId ? getQuestById(questId) : getLeftQuests();
         if (!quest) {
             showToast("No active quest found!");
             return;
         }
 
+        // Changed to stop if already running
         if (runningQuests.has(quest.id)) {
             stopQuest(quest.id);
             return;
         }
 
-        if (!quest || !quest.userStatus?.enrolledAt) {
+        if (!quest.userStatus?.enrolledAt) {
             showToast("You need to start playing the video first, then pause it or accept the quest!");
             return;
         }
 
-        // Check if quest is already completed
         if (quest.userStatus?.completedAt) {
             showToast("This quest is already completed!");
             return;
         }
 
-        // Check if quest is expired
         if (new Date(quest.config.expiresAt).getTime() < Date.now()) {
             showToast("This quest has expired!");
             return;
         }
 
-        // Get current stream status once
         const currentStream = ApplicationStreamingStore.getCurrentUserActiveStream();
         const taskName = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"].find(
             x => quest.config.taskConfig.tasks[x] != null
@@ -198,7 +201,6 @@ export default definePlugin({
             return;
         }
 
-        // Precondition checks
         try {
             if (taskName === "STREAM_ON_DESKTOP") {
                 if (!currentStream) {
@@ -217,14 +219,8 @@ export default definePlugin({
                 showToast("Desktop app required for gameplay quests!");
                 return;
             }
-
-
         } catch (error) {
-            if (error instanceof Error) {
-                showToast(error.message);
-            } else {
-                showToast("An unknown error occurred while starting the quest completer.");
-            }
+            showToast(error instanceof Error ? error.message : "An unknown error occurred");
             return;
         }
 

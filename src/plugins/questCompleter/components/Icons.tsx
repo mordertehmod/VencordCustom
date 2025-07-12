@@ -1,9 +1,3 @@
-/*
- * Vencord, a Discord client mod
- * Copyright (c) 2023 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 import { Button, ButtonWrapperClasses, Tooltip, useEffect, useState } from "@webpack/common";
 
 
@@ -41,4 +35,3 @@ export function IconWithTooltip({ text, icon, onClick, isDisabled }) {
         )}
     </Tooltip>;
 }
-
