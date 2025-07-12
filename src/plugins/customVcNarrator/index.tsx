@@ -16,13 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Settings } from "@api/Settings";
 import { Devs } from "@utils/constants";
+import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { wordsToTitle } from "@utils/text";
-import definePlugin, { OptionType, PluginOptionsItem } from "@utils/types";
+import definePlugin, { ReporterTestable } from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import { Button, ChannelStore, Forms, GuildMemberStore, SelectedChannelStore, SelectedGuildStore, useMemo, UserStore } from "@webpack/common";
+import { ReactElement } from "react";
+
+import { getCurrentVoice, settings } from "./settings";
 
 interface VoiceState {
     userId: string;
@@ -36,48 +39,64 @@ interface VoiceState {
 
 const VoiceStateStore = findByPropsLazy("getVoiceStatesForChannel", "getCurrentClientVoiceChannelId");
 
-// Mute/Deaf for other people than you is commented out, because otherwise someone can spam it and it will be annoying
-// Filtering out events is not as simple as just dropping duplicates, as otherwise mute, unmute, mute would
-// not say the second mute, which would lead you to believe they're unmuted
-
-async function speak(text: string, settings: any = Settings.plugins.VcNarratorCustom) {
+async function speak(text: string, { volume, rate } = settings.store) {
     if (text.trim().length === 0) return;
-    const response = await fetch("https://tiktok-tts.weilnet.workers.dev/api/generation", {
-        method: "POST",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "same-origin",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        referrerPolicy: "no-referrer",
-        body: JSON.stringify({
-            text: text,
-            voice: Settings.plugins.VcNarratorCustom.customVoice
-        })
-    });
 
-    const data = await response.json();
-    const audioData = atob(data.data);
+    try {
+        const voiceSelection = getCurrentVoice();
 
-    const binaryData: number[] = [];
-    for (let i = 0; i < audioData.length; i++) {
-        binaryData.push(audioData.charCodeAt(i));
+        if (!voiceSelection) {
+            throw new Error("No voice selected");
+        }
+
+        const response = await fetch("https://tiktok-tts.weilnet.workers.dev/api/generation", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                text: text,
+                voice: voiceSelection.id
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`TTS API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data?.success) {
+            throw new Error(data?.error || "Unknown TTS API error");
+        }
+
+        const audioData = atob(data.data);
+        const binaryData = new Uint8Array(audioData.length);
+
+        for (let i = 0; i < audioData.length; i++) {
+            binaryData[i] = audioData.charCodeAt(i);
+        }
+
+        const blob = new Blob([binaryData], { type: "audio/mpeg" });
+        const url = URL.createObjectURL(blob);
+
+        const audio = new Audio(url);
+        audio.volume = volume;
+        audio.playbackRate = rate;
+
+        audio.addEventListener("ended", () => {
+            URL.revokeObjectURL(url);
+        }, { once: true });
+
+        await audio.play();
+
+    } catch (error) {
+        new Logger("CustomVCNarrator").error("Failed to play TTS: ", error);
     }
-
-    const blob = new Blob([new Uint8Array(binaryData)], { type: "audio/mpeg" });
-    const url = URL.createObjectURL(blob);
-
-    const audio = new Audio(url);
-    audio.volume = 0.3;
-    audio.play();
-
-    audio.volume = settings.volume;
-    audio.playbackRate = settings.rate;
 }
 
 function clean(str: string) {
-    const replacer = Settings.plugins.VcNarratorCustom.latinOnly
+    const replacer = settings.store.latinOnly
         ? /[^\p{Script=Latin}\p{Number}\p{Punctuation}\s]/gu
         : /[^\p{Letter}\p{Number}\p{Punctuation}\s]/gu;
 
@@ -95,16 +114,6 @@ function formatText(str: string, user: string, channel: string, displayName: str
         .replaceAll("{{NICKNAME}}", clean(nickname) || (nickname ? "Someone" : ""));
 }
 
-/*
-let StatusMap = {} as Record<string, {
-    mute: boolean;
-    deaf: boolean;
-}>;
-*/
-
-// For every user, channelId and oldChannelId will differ when moving channel.
-// Only for the local user, channelId and oldChannelId will be the same when moving channel,
-// for some ungodly reason
 let myLastChannelId: string | undefined;
 
 function getTypeAndChannelId({ channelId, oldChannelId }: VoiceState, isMe: boolean) {
@@ -117,74 +126,35 @@ function getTypeAndChannelId({ channelId, oldChannelId }: VoiceState, isMe: bool
         if (channelId) return [oldChannelId ? "move" : "join", channelId];
         if (oldChannelId) return ["leave", oldChannelId];
     }
-    /*
-    if (channelId) {
-        if (deaf || selfDeaf) return ["deafen", channelId];
-        if (mute || selfMute) return ["mute", channelId];
-        const oldStatus = StatusMap[userId];
-        if (oldStatus.deaf) return ["undeafen", channelId];
-        if (oldStatus.mute) return ["unmute", channelId];
-    }
-    */
+
     return ["", ""];
 }
 
-/*
-function updateStatuses(type: string, { deaf, mute, selfDeaf, selfMute, userId, channelId }: VoiceState, isMe: boolean) {
-    if (isMe && (type === "join" || type === "move")) {
-        StatusMap = {};
-        const states = VoiceStateStore.getVoiceStatesForChannel(channelId!) as Record<string, VoiceState>;
-        for (const userId in states) {
-            const s = states[userId];
-            StatusMap[userId] = {
-                mute: s.mute || s.selfMute,
-                deaf: s.deaf || s.selfDeaf
-            };
-        }
-        return;
-    }
-
-    if (type === "leave" || (type === "move" && channelId !== SelectedChannelStore.getVoiceChannelId())) {
-        if (isMe)
-            StatusMap = {};
-        else
-            delete StatusMap[userId];
-
-        return;
-    }
-
-    StatusMap[userId] = {
-        deaf: deaf || selfDeaf,
-        mute: mute || selfMute
-    };
-}
-*/
-
 function playSample(tempSettings: any, type: string) {
-    const settings = Object.assign({}, Settings.plugins.VcNarratorCustom, tempSettings);
+    const s = Object.assign({}, settings.plain, tempSettings);
     const currentUser = UserStore.getCurrentUser();
     const myGuildId = SelectedGuildStore.getGuildId();
 
-    speak(formatText(settings[type + "Message"], currentUser.username, "general", (currentUser as any).globalName ?? currentUser.username, GuildMemberStore.getNick(myGuildId, currentUser.id) ?? currentUser.username), settings);
+    speak(formatText(s[type + "Message"], currentUser.username, "general", (currentUser as any).globalName ?? currentUser.username, GuildMemberStore.getNick(myGuildId, currentUser.id) ?? currentUser.username), s);
 }
 
 export default definePlugin({
-    name: "VcNarratorCustom",
+    name: "CustomVcNarrator",
     description: "Announces when users join, leave, or move voice channels via narrator. TikTok TTS version; speechSynthesis is pretty boring",
     authors: [Devs.Ven, Devs.Nyako, Devs.LSDZaddi],
-
+    reporterTestable: ReporterTestable.None,
+    settings,
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             const myGuildId = SelectedGuildStore.getGuildId();
             const myChanId = SelectedChannelStore.getVoiceChannelId();
             const myId = UserStore.getCurrentUser().id;
 
-            if (ChannelStore.getChannel(myChanId!)?.type === 13 /* Stage Channel */) return;
+            if (ChannelStore.getChannel(myChanId!)?.type === 13) return;
 
             for (const state of voiceStates) {
                 const { userId, channelId, oldChannelId } = state;
                 const isMe = userId === myId;
-                if (isMe && Settings.plugins.VcNarratorCustom.ignoreSelf) continue;
                 if (!isMe) {
                     if (!myChanId) continue;
                     if (channelId !== myChanId && oldChannelId !== myChanId) continue;
@@ -193,120 +163,45 @@ export default definePlugin({
                 const [type, id] = getTypeAndChannelId(state, isMe);
                 if (!type) continue;
 
-                const template = Settings.plugins.VcNarratorCustom[type + "Message"];
-                const user = isMe && !Settings.plugins.VcNarratorCustom.sayOwnName ? "" : UserStore.getUser(userId).username;
+                const template = settings.store[type + "Message"];
+                const user = isMe && !settings.store.sayOwnName ? "" : UserStore.getUser(userId).username;
                 const displayName = user && ((UserStore.getUser(userId) as any).globalName ?? user);
-                const nickname = user && (GuildMemberStore.getNick(myGuildId, userId) ?? displayName);
+                const nickname = user && (GuildMemberStore.getNick(myGuildId, userId) ?? user);
                 const channel = ChannelStore.getChannel(id).name;
 
                 speak(formatText(template, user, channel, displayName, nickname));
-
-                // updateStatuses(type, state, isMe);
             }
         },
 
         AUDIO_TOGGLE_SELF_MUTE() {
             const chanId = SelectedChannelStore.getVoiceChannelId()!;
             const s = VoiceStateStore.getVoiceStateForChannel(chanId) as VoiceState;
+
             if (!s) return;
 
             const event = s.mute || s.selfMute ? "unmute" : "mute";
-            speak(formatText(Settings.plugins.VcNarratorCustom[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
+            speak(formatText(settings.store[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
         },
 
         AUDIO_TOGGLE_SELF_DEAF() {
             const chanId = SelectedChannelStore.getVoiceChannelId()!;
             const s = VoiceStateStore.getVoiceStateForChannel(chanId) as VoiceState;
+
             if (!s) return;
 
             const event = s.deaf || s.selfDeaf ? "undeafen" : "deafen";
-            speak(formatText(Settings.plugins.VcNarratorCustom[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
+            speak(formatText(settings.store[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
         }
-    },
-
-    optionsCache: null as Record<string, PluginOptionsItem> | null,
-    get options() {
-        return this.optionsCache ??= {
-            customVoice: {
-                type: OptionType.STRING,
-                description: "Custom voice id, currently just tiktok",
-                default: "en_us_001"
-            },
-            volume: {
-                type: OptionType.SLIDER,
-                description: "Narrator Volume",
-                default: 1,
-                markers: [0, 0.25, 0.5, 0.75, 1],
-                stickToMarkers: false
-            },
-            rate: {
-                type: OptionType.SLIDER,
-                description: "Narrator Speed",
-                default: 1,
-                markers: [0.1, 0.5, 1, 2, 5, 10],
-                stickToMarkers: false
-            },
-            sayOwnName: {
-                description: "Say own name",
-                type: OptionType.BOOLEAN,
-                default: false
-            },
-            ignoreSelf: {
-                description: "Ignore yourself for all events.",
-                type: OptionType.BOOLEAN,
-                default: false
-            },
-            latinOnly: {
-                description: "Strip non latin characters from names before saying them",
-                type: OptionType.BOOLEAN,
-                default: false
-            },
-            joinMessage: {
-                type: OptionType.STRING,
-                description: "Join Message",
-                default: "{{DISPLAY_NAME}} joined"
-            },
-            leaveMessage: {
-                type: OptionType.STRING,
-                description: "Leave Message",
-                default: "{{DISPLAY_NAME}} left"
-            },
-            moveMessage: {
-                type: OptionType.STRING,
-                description: "Move Message",
-                default: "{{DISPLAY_NAME}} moved to {{CHANNEL}}"
-            },
-            muteMessage: {
-                type: OptionType.STRING,
-                description: "Mute Message (only self for now)",
-                default: "{{DISPLAY_NAME}} Muted"
-            },
-            unmuteMessage: {
-                type: OptionType.STRING,
-                description: "Unmute Message (only self for now)",
-                default: "{{DISPLAY_NAME}} unmuted"
-            },
-            deafenMessage: {
-                type: OptionType.STRING,
-                description: "Deafen Message (only self for now)",
-                default: "{{DISPLAY_NAME}} deafened"
-            },
-            undeafenMessage: {
-                type: OptionType.STRING,
-                description: "Undeafen Message (only self for now)",
-                default: "{{DISPLAY_NAME}} undeafened"
-            }
-        };
     },
 
     settingsAboutComponent({ tempSettings: s }) {
 
         const types = useMemo(
-            () => Object.keys(Vencord.Plugins.plugins.VcNarratorCustom.options!).filter(k => k.endsWith("Message")).map(k => k.slice(0, -7)),
+            () => Object.keys(settings.def).filter(k => k.endsWith("Message")).map(k => k.slice(0, -7)),
             [],
         );
 
-        const errorComponent: React.ReactElement | null = null;
+        const errorComponent: ReactElement<any> | null = null;
 
         return (
             <Forms.FormSection>
@@ -316,9 +211,6 @@ export default definePlugin({
                 <Forms.FormText>
                     The special placeholders <code>{"{{USER}}"}</code>, <code>{"{{DISPLAY_NAME}}"}</code>, <code>{"{{NICKNAME}}"}</code> and <code>{"{{CHANNEL}}"}</code>{" "}
                     will be replaced with the user's name (nothing if it's yourself), the user's display name, the user's nickname on current server and the channel's name respectively
-                </Forms.FormText>
-                <Forms.FormText>
-                    You can find a list of custom voices (tiktok only for now) <a href="https://github.com/oscie57/tiktok-voice/wiki/Voice-Codes" target="_blank" rel="noreferrer">here</a>
                 </Forms.FormText>
                 <Forms.FormTitle className={Margins.top20} tag="h3">Play Example Sounds</Forms.FormTitle>
                 <div
