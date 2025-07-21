@@ -16,19 +16,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Settings } from "@api/Settings";
 import { ErrorCard } from "@components/ErrorCard";
 import { Devs, IS_LINUX } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { wordsToTitle } from "@utils/text";
-import definePlugin, { OptionType, PluginOptionsItem, ReporterTestable } from "@utils/types";
-import { findStoreLazy } from "@webpack";
+import definePlugin, { ReporterTestable } from "@utils/types";
+import { findByPropsLazy } from "@webpack";
 import { Button, ChannelStore, Forms, GuildMemberStore, SelectedChannelStore, SelectedGuildStore, useMemo, UserStore } from "@webpack/common";
-import { VoiceState } from "@webpack/types";
 import { ReactElement } from "react";
 
-const VoiceStateStore = findStoreLazy("VoiceStateStore");
+import { getCurrentVoice, settings } from "./settings";
+
+interface VoiceState {
+    userId: string;
+    channelId?: string;
+    oldChannelId?: string;
+    deaf: boolean;
+    mute: boolean;
+    selfDeaf: boolean;
+    selfMute: boolean;
+}
+
+const VoiceStateStore = findByPropsLazy("getVoiceStatesForChannel", "getCurrentClientVoiceChannelId");
 
 // Mute/Deaf for other people than you is commented out, because otherwise someone can spam it and it will be annoying
 // Filtering out events is not as simple as just dropping duplicates, as otherwise mute, unmute, mute would
@@ -40,21 +50,15 @@ function speak(text: string) {
     const { volume, rate } = settings.store;
 
     const speech = new SpeechSynthesisUtterance(text);
-    let voice = speechSynthesis.getVoices().find(v => v.voiceURI === settings.voice);
-    if (!voice) {
-        new Logger("VcNarrator").error(`Voice "${settings.voice}" not found. Resetting to default.`);
-        voice = speechSynthesis.getVoices().find(v => v.default);
-        settings.voice = voice?.voiceURI;
-        if (!voice) return; // This should never happen
-    }
+    const voice = getCurrentVoice();
     speech.voice = voice!;
-    speech.volume = settings.volume;
-    speech.rate = settings.rate;
+    speech.volume = volume;
+    speech.rate = rate;
     speechSynthesis.speak(speech);
 }
 
 function clean(str: string) {
-    const replacer = Settings.plugins.VcNarrator.latinOnly
+    const replacer = settings.store.latinOnly
         ? /[^\p{Script=Latin}\p{Number}\p{Punctuation}\s]/gu
         : /[^\p{Letter}\p{Number}\p{Punctuation}\s]/gu;
 
@@ -156,6 +160,8 @@ export default definePlugin({
     authors: [Devs.Ven],
     reporterTestable: ReporterTestable.None,
 
+    settings,
+
     flux: {
         VOICE_STATE_UPDATES({ voiceStates }: { voiceStates: VoiceState[]; }) {
             const myGuildId = SelectedGuildStore.getGuildId();
@@ -175,8 +181,8 @@ export default definePlugin({
                 const [type, id] = getTypeAndChannelId(state, isMe);
                 if (!type) continue;
 
-                const template = Settings.plugins.VcNarrator[type + "Message"];
-                const user = isMe && !Settings.plugins.VcNarrator.sayOwnName ? "" : UserStore.getUser(userId).username;
+                const template = settings.store[type + "Message"];
+                const user = isMe && !settings.store.sayOwnName ? "" : UserStore.getUser(userId).username;
                 const displayName = user && ((UserStore.getUser(userId) as any).globalName ?? user);
                 const nickname = user && (GuildMemberStore.getNick(myGuildId!, userId) ?? user);
                 const channel = ChannelStore.getChannel(id).name;
@@ -193,7 +199,7 @@ export default definePlugin({
             if (!s) return;
 
             const event = s.mute || s.selfMute ? "unmute" : "mute";
-            speak(formatText(Settings.plugins.VcNarrator[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
+            speak(formatText(settings.store[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
         },
 
         AUDIO_TOGGLE_SELF_DEAF() {
@@ -202,7 +208,7 @@ export default definePlugin({
             if (!s) return;
 
             const event = s.deaf || s.selfDeaf ? "undeafen" : "deafen";
-            speak(formatText(Settings.plugins.VcNarrator[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
+            speak(formatText(settings.store[event + "Message"], "", ChannelStore.getChannel(chanId).name, "", ""));
         }
     },
 
@@ -223,7 +229,7 @@ export default definePlugin({
         }, []);
 
         const types = useMemo(
-            () => Object.keys(Vencord.Plugins.plugins.VcNarrator.options!).filter(k => k.endsWith("Message")).map(k => k.slice(0, -7)),
+            () => Object.keys(settings.def).filter(k => k.endsWith("Message")).map(k => k.slice(0, -7)),
             [],
         );
 

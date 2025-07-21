@@ -39,8 +39,9 @@ interface VoiceState {
 
 const VoiceStateStore = findByPropsLazy("getVoiceStatesForChannel", "getCurrentClientVoiceChannelId");
 
-async function speak(text: string, { volume, rate } = settings.store) {
-    if (text.trim().length === 0) return;
+async function speak(text: string) {
+    if (!text || text.trim().length === 0) return;
+    const { volume, rate } = settings.store;
 
     try {
         const voiceSelection = getCurrentVoice();
@@ -130,12 +131,17 @@ function getTypeAndChannelId({ channelId, oldChannelId }: VoiceState, isMe: bool
     return ["", ""];
 }
 
-function playSample(tempSettings: any, type: string) {
-    const s = Object.assign({}, settings.plain, tempSettings);
+function playSample(type: string) {
     const currentUser = UserStore.getCurrentUser();
     const myGuildId = SelectedGuildStore.getGuildId();
 
-    speak(formatText(s[type + "Message"], currentUser.username, "general", (currentUser as any).globalName ?? currentUser.username, GuildMemberStore.getNick(myGuildId, currentUser.id) ?? currentUser.username), s);
+    speak(formatText(
+        settings.store[type + "Message"],
+        currentUser.username,
+        "general",
+        currentUser.globalName ?? currentUser.username,
+        GuildMemberStore.getNick(myGuildId!, currentUser.id) ?? currentUser.username
+    ));
 }
 
 export default definePlugin({
@@ -166,7 +172,7 @@ export default definePlugin({
                 const template = settings.store[type + "Message"];
                 const user = isMe && !settings.store.sayOwnName ? "" : UserStore.getUser(userId).username;
                 const displayName = user && ((UserStore.getUser(userId) as any).globalName ?? user);
-                const nickname = user && (GuildMemberStore.getNick(myGuildId, userId) ?? user);
+                const nickname = user && (GuildMemberStore.getNick(myGuildId!, userId) ?? user);
                 const channel = ChannelStore.getChannel(id).name;
 
                 speak(formatText(template, user, channel, displayName, nickname));
@@ -194,7 +200,7 @@ export default definePlugin({
         }
     },
 
-    settingsAboutComponent({ tempSettings: s }) {
+    settingsAboutComponent() {
 
         const types = useMemo(
             () => Object.keys(settings.def).filter(k => k.endsWith("Message")).map(k => k.slice(0, -7)),
@@ -222,7 +228,7 @@ export default definePlugin({
                     className={"vc-narrator-buttons"}
                 >
                     {types.map(t => (
-                        <Button key={t} onClick={() => playSample(s, t)}>
+                        <Button key={t} onClick={() => playSample(t)}>
                             {wordsToTitle([t])}
                         </Button>
                     ))}
