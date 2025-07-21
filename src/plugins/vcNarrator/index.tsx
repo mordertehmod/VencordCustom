@@ -18,7 +18,7 @@
 
 import { Settings } from "@api/Settings";
 import { ErrorCard } from "@components/ErrorCard";
-import { Devs } from "@utils/constants";
+import { Devs, IS_LINUX } from "@utils/constants";
 import { Logger } from "@utils/Logger";
 import { Margins } from "@utils/margins";
 import { wordsToTitle } from "@utils/text";
@@ -34,8 +34,10 @@ const VoiceStateStore = findStoreLazy("VoiceStateStore");
 // Filtering out events is not as simple as just dropping duplicates, as otherwise mute, unmute, mute would
 // not say the second mute, which would lead you to believe they're unmuted
 
-function speak(text: string, settings: any = Settings.plugins.VcNarrator) {
+function speak(text: string) {
     if (!text) return;
+
+    const { volume, rate } = settings.store;
 
     const speech = new SpeechSynthesisUtterance(text);
     let voice = speechSynthesis.getVoices().find(v => v.voiceURI === settings.voice);
@@ -135,19 +137,17 @@ function updateStatuses(type: string, { deaf, mute, selfDeaf, selfMute, userId, 
 }
 */
 
-function playSample(tempSettings: any, type: string) {
-    const settings = Object.assign({}, Settings.plugins.VcNarrator, tempSettings);
+function playSample(type: string) {
     const currentUser = UserStore.getCurrentUser();
     const myGuildId = SelectedGuildStore.getGuildId();
 
     speak(formatText(
-        s[type + "Message"],
+        settings.store[type + "Message"],
         currentUser.username,
         "general",
         currentUser.globalName ?? currentUser.username,
-        GuildMemberStore.getNick(myGuildId!, currentUser.id) ?? currentUser.username),
-        s
-    );
+        GuildMemberStore.getNick(myGuildId!, currentUser.id) ?? currentUser.username
+    ));
 }
 
 export default definePlugin({
@@ -216,82 +216,7 @@ export default definePlugin({
 
     },
 
-    optionsCache: null as Record<string, PluginOptionsItem> | null,
-
-    get options() {
-        return this.optionsCache ??= {
-            voice: {
-                type: OptionType.SELECT,
-                description: "Narrator Voice",
-                options: window.speechSynthesis?.getVoices().map(v => ({
-                    label: v.name,
-                    value: v.voiceURI,
-                    default: v.default
-                })) ?? []
-            },
-            volume: {
-                type: OptionType.SLIDER,
-                description: "Narrator Volume",
-                default: 1,
-                markers: [0, 0.25, 0.5, 0.75, 1],
-                stickToMarkers: false
-            },
-            rate: {
-                type: OptionType.SLIDER,
-                description: "Narrator Speed",
-                default: 1,
-                markers: [0.1, 0.5, 1, 2, 5, 10],
-                stickToMarkers: false
-            },
-            sayOwnName: {
-                description: "Say own name",
-                type: OptionType.BOOLEAN,
-                default: false
-            },
-            latinOnly: {
-                description: "Strip non latin characters from names before saying them",
-                type: OptionType.BOOLEAN,
-                default: false
-            },
-            joinMessage: {
-                type: OptionType.STRING,
-                description: "Join Message",
-                default: "{{USER}} joined"
-            },
-            leaveMessage: {
-                type: OptionType.STRING,
-                description: "Leave Message",
-                default: "{{USER}} left"
-            },
-            moveMessage: {
-                type: OptionType.STRING,
-                description: "Move Message",
-                default: "{{USER}} moved to {{CHANNEL}}"
-            },
-            muteMessage: {
-                type: OptionType.STRING,
-                description: "Mute Message (only self for now)",
-                default: "{{USER}} muted"
-            },
-            unmuteMessage: {
-                type: OptionType.STRING,
-                description: "Unmute Message (only self for now)",
-                default: "{{USER}} unmuted"
-            },
-            deafenMessage: {
-                type: OptionType.STRING,
-                description: "Deafen Message (only self for now)",
-                default: "{{USER}} deafened"
-            },
-            undeafenMessage: {
-                type: OptionType.STRING,
-                description: "Undeafen Message (only self for now)",
-                default: "{{USER}} undeafened"
-            }
-        } satisfies Record<string, PluginOptionsItem>;
-    },
-
-    settingsAboutComponent({ tempSettings: s }) {
+    settingsAboutComponent() {
         const [hasVoices, hasEnglishVoices] = useMemo(() => {
             const voices = speechSynthesis.getVoices();
             return [voices.length !== 0, voices.some(v => v.lang.startsWith("en"))];
@@ -305,7 +230,7 @@ export default definePlugin({
         let errorComponent: ReactElement<any> | null = null;
         if (!hasVoices) {
             let error = "No narrator voices found. ";
-            error += navigator.platform?.toLowerCase().includes("linux")
+            error += IS_LINUX
                 ? "Install speech-dispatcher or espeak and run Discord with the --enable-speech-dispatcher flag"
                 : "Try installing some in the Narrator settings of your Operating System";
             errorComponent = <ErrorCard>{error}</ErrorCard>;
@@ -334,7 +259,7 @@ export default definePlugin({
                             className={"vc-narrator-buttons"}
                         >
                             {types.map(t => (
-                                <Button key={t} onClick={() => playSample(s, t)}>
+                                <Button key={t} onClick={() => playSample(t)}>
                                     {wordsToTitle([t])}
                                 </Button>
                             ))}
