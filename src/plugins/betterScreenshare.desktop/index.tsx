@@ -20,13 +20,18 @@ import { definePluginSettings } from "@api/Settings";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
+import { UserStore } from "@webpack/common";
 
 import { Emitter, ScreenshareSettingsIcon } from "../philsPluginLibraryVisualRefresh";
+import { SendCustomScreenSharePreviewImageButton } from "./components";
 import { PluginInfo } from "./constants";
 import { openScreenshareModal } from "./modals";
 import { ScreenshareAudioPatcher, ScreensharePatcher } from "./patchers";
 import { GoLivePanelWrapper, replacedSubmitFunction } from "./patches";
+import { CustomStreamPreviewState } from "./state";
 import { initScreenshareAudioStore, initScreenshareStore } from "./stores";
+import { StreamCreateEvent, StreamDeleteEvent } from "./types";
+import { parseStreamKey, stopSendingScreenSharePreview } from "./utilities";
 
 const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
 
@@ -42,11 +47,40 @@ function screenshareSettingsButton() {
     );
 }
 
+function sendCustomScreenSharePreviewImageButton() {
+    return <SendCustomScreenSharePreviewImageButton />;
+}
+
 export default definePlugin({
     name: "BetterScreenshare",
     description: "This plugin allows you to further customize your screen sharing.",
     authors: [Devs.philhk, Devs.LSDZaddi],
     dependencies: ["PhilsPluginLibraryVisualRefresh"],
+    flux: {
+        async STREAM_CREATE({ streamKey }: StreamCreateEvent): Promise<void> {
+            const { userId } = parseStreamKey(streamKey);
+
+            if (userId !== UserStore.getCurrentUser().id) {
+                return;
+            }
+
+            CustomStreamPreviewState.setState({
+                isStreaming: true,
+            });
+        },
+        async STREAM_DELETE({ streamKey }: StreamDeleteEvent): Promise<void> {
+            const { userId } = parseStreamKey(streamKey);
+
+            if (userId !== UserStore.getCurrentUser().id) {
+                return;
+            }
+
+            CustomStreamPreviewState.setState({
+                isStreaming: false,
+            });
+            stopSendingScreenSharePreview();
+        },
+    },
     patches: [
         {
             find: "GoLiveModal: user cannot be undefined", // Module: 60594; canaryRelease: 364525; L431
@@ -66,7 +100,7 @@ export default definePlugin({
             find: "#{intl::ACCOUNT_SPEAKING_WHILE_MUTED}",
             replacement: {
                 match: /className:\i\.buttons,.{0,50}children:\[/,
-                replace: "$&$self.screenshareSettingsButton(),"
+                replace: "$&$self.screenshareSettingsButton(),$self.sendCustomScreenSharePreviewImageButton(),"
             }
         }
     ],
@@ -88,11 +122,13 @@ export default definePlugin({
         this.screensharePatcher?.unpatch();
         this.screenshareAudioPatcher?.unpatch();
         Emitter.removeAllListeners(PluginInfo.PLUGIN_NAME);
+        CustomStreamPreviewState.reset();
     },
     toolboxActions: {
         "Open Screenshare Settings": openScreenshareModal
     },
     replacedSubmitFunction,
     GoLivePanelWrapper,
-    screenshareSettingsButton
+    screenshareSettingsButton,
+    sendCustomScreenSharePreviewImageButton
 });
