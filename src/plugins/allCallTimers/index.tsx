@@ -1,17 +1,11 @@
-/*
- * Vencord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { FluxDispatcher, GuildStore, UserStore } from "@webpack/common";
-import { PassiveUpdateState, VoiceState } from "@webpack/types";
 
 import { Timer } from "./Timer";
+import { PassiveUpdateState, VoiceState } from "./types";
 
 export const settings = definePluginSettings({
     showWithoutHover: {
@@ -107,13 +101,11 @@ export default definePlugin({
 
     patches: [
         {
-            find: ".usernameSpeaking",
-            replacement: [
-                {
-                    match: /function\(\)\{.+:""(?=.*?userId:(\i))/,
-                    replace: "$&,$self.showTextInjection($1.id),"
-                }
-            ]
+            find: ".usernameSpeaking]:",
+            replacement: {
+                match: /\i\.getName\((\i)\),/,
+                replace: "$&$self.showInjection($1.id),"
+            }
         }
     ],
 
@@ -218,22 +210,10 @@ export default definePlugin({
         }
     },
 
-    showClockInjection(id: string) {
-        if (settings.store.showWithoutHover) {
-            return "";
-        }
-        return this.showInjection(id);
-    },
-
-    showTextInjection(id: string) {
+    showInjection(userId: string) {
         if (!settings.store.showWithoutHover) {
             return "";
         }
-        return this.showInjection(id);
-    },
-
-    showInjection(id: string) {
-        const userId = id;
         return this.renderTimer(userId);
     },
 
