@@ -1,26 +1,77 @@
-/*
- * Vencord, a Discord client mod
- * Copyright (c) 2024 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-
+import { Toasts } from "@webpack/common";
 
 export let fakeD = false;
 
 const Button = findComponentByCodeLazy(".NONE,disabled:", ".PANEL_BUTTON");
 
+function showSuccessToast(message: string) {
+    Toasts.show({
+        message,
+        type: Toasts.Type.SUCCESS,
+        id: Toasts.genId(),
+        options: {
+            duration: 3000,
+            position: Toasts.Position.TOP
+        }
+    });
+}
+
+function showErrorToast(message: string) {
+    Toasts.show({
+        message,
+        type: Toasts.Type.FAILURE,
+        id: Toasts.genId(),
+        options: {
+            duration: 4000,
+            position: Toasts.Position.TOP
+        }
+    });
+}
+
+function showInfoToast(message: string) {
+    Toasts.show({
+        message,
+        type: Toasts.Type.MESSAGE,
+        id: Toasts.genId(),
+        options: {
+            duration: 2500,
+            position: Toasts.Position.TOP
+        }
+    });
+}
+
 function mute() {
-    (document.querySelector('[aria-label="Mute"]') as HTMLElement).click();
+    const muteButton = document.querySelector('[aria-label="Mute"]') as HTMLElement;
+    if (muteButton) {
+        muteButton.click();
+        if (settings.store.showToasts) {
+            showInfoToast("🔇 Muted for fake deafen");
+        }
+    } else {
+        console.warn("FakeDeafen: Mute button not found");
+        if (settings.store.showToasts) {
+            showErrorToast("❌ Failed to find mute button");
+        }
+    }
 }
 
 function deafen() {
-    (document.querySelector('[aria-label="Deafen"]') as HTMLElement).click();
+    const deafenButton = document.querySelector('[aria-label="Deafen"]') as HTMLElement;
+    if (deafenButton) {
+        deafenButton.click();
+        return true;
+    } else {
+        console.warn("FakeDeafen: Deafen button not found");
+        if (settings.store.showToasts) {
+            showErrorToast("❌ Failed to find deafen button");
+        }
+        return false;
+    }
 }
 
 function makeDeafenIcon(useFakeState: boolean) {
@@ -73,7 +124,6 @@ function makeDeafenIcon(useFakeState: boolean) {
     };
 }
 
-
 const TooltipModule = findByPropsLazy("Cy", "u", "FG");
 
 function fakeDeafenToggleButton() {
@@ -87,19 +137,47 @@ function fakeDeafenToggleButton() {
                 <button
                     {...tooltipProps}
                     onClick={() => {
+                        const wasActivated = !fakeD;
                         fakeD = !fakeD;
-                        deafen();
-                        setTimeout(deafen, 250);
 
-                        if (settings.store.muteUponFakeDeafen)
+                        let success = true;
+
+                        if (!deafen()) {
+                            success = false;
+                        }
+
+                        setTimeout(() => {
+                            if (!deafen()) {
+                                success = false;
+                            }
+                        }, 250);
+
+                        if (settings.store.muteUponFakeDeafen) {
                             setTimeout(mute, 300);
+                        }
+
+                        setTimeout(() => {
+                            if (settings.store.showToasts) {
+                                if (success) {
+                                    if (wasActivated) {
+                                        showSuccessToast("🔇 FakeDeafen Activated!");
+                                    } else {
+                                        showSuccessToast("🔊 FakeDeafen Deactivated!");
+                                    }
+                                } else {
+                                    showErrorToast("❌ FakeDeafen failed - Please report this error to LSDZaddi");
+                                }
+                            }
+                        }, 500);
                     }}
                     role="switch"
                     className="expressive-fakedeafen-button"
                     aria-checked={!fakeD}
                     style={{
-                        background: "linear-gradient(45deg, rgba(88, 101, 242, 0.25), rgba(114, 137, 218, 0.25))",
-                        border: "none",
+                        background: fakeD
+                            ? "linear-gradient(45deg, rgba(237, 66, 69, 0.25), rgba(240, 71, 71, 0.25))"
+                            : "linear-gradient(45deg, rgba(88, 101, 242, 0.25), rgba(114, 137, 218, 0.25))",
+                        border: fakeD ? "1px solid rgba(237, 66, 69, 0.4)" : "1px solid rgba(88, 101, 242, 0.4)",
                         borderRadius: "6px",
                         padding: "8px",
                         cursor: "pointer",
@@ -109,12 +187,12 @@ function fakeDeafenToggleButton() {
                         width: "40px",
                         height: "40px",
                         position: "relative",
-                        transition: "transform 0.2s ease",
-                        animation: "expressiveGlow 15s ease-in-out infinite",
+                        transition: "all 0.2s ease",
+                        animation: fakeD ? "expressiveGlowActive 3s ease-in-out infinite" : "expressiveGlow 15s ease-in-out infinite",
                         color: "white"
                     }}
                 >
-                    <DeafenIcon /> {/* Render */}
+                    <DeafenIcon />
                 </button>
             )}
         </TooltipModule.u>
@@ -122,6 +200,11 @@ function fakeDeafenToggleButton() {
 }
 
 const settings = definePluginSettings({
+    showToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Show debug notifications for status updates",
+        default: true
+    },
     muteUponFakeDeafen: {
         type: OptionType.BOOLEAN,
         description: "",
@@ -181,43 +264,75 @@ export default definePlugin({
     fakeDeafenToggleButton: ErrorBoundary.wrap(fakeDeafenToggleButton, { noop: true }),
 
     start(): void {
-
         const style = document.createElement("style");
         style.id = "fakedeafen-expressive-styles";
         style.textContent = `
             @keyframes expressiveGlow {
                 0% {
                     box-shadow: 0 0 8px rgba(255, 0, 128, 0.4), 0 0 16px rgba(255, 0, 128, 0.2);
-                    border: 1px solid rgba(255, 0, 128, 0.3);
                 }
                 25% {
                     box-shadow: 0 0 8px rgba(0, 255, 128, 0.4), 0 0 16px rgba(0, 255, 128, 0.2);
-                    border: 1px solid rgba(0, 255, 128, 0.3);
                 }
                 50% {
                     box-shadow: 0 0 8px rgba(128, 0, 255, 0.4), 0 0 16px rgba(128, 0, 255, 0.2);
-                    border: 1px solid rgba(128, 0, 255, 0.3);
                 }
                 75% {
                     box-shadow: 0 0 8px rgba(255, 128, 0, 0.4), 0 0 16px rgba(255, 128, 0, 0.2);
-                    border: 1px solid rgba(255, 128, 0, 0.3);
                 }
                 100% {
                     box-shadow: 0 0 8px rgba(255, 0, 128, 0.4), 0 0 16px rgba(255, 0, 128, 0.2);
-                    border: 1px solid rgba(255, 0, 128, 0.3);
                 }
             }
 
-            .fakedeafen-button:hover {
+            @keyframes expressiveGlowActive {
+                0% {
+                    box-shadow: 0 0 12px rgba(237, 66, 69, 0.6), 0 0 24px rgba(237, 66, 69, 0.3);
+                }
+                50% {
+                    box-shadow: 0 0 16px rgba(240, 71, 71, 0.8), 0 0 32px rgba(240, 71, 71, 0.4);
+                }
+                100% {
+                    box-shadow: 0 0 12px rgba(237, 66, 69, 0.6), 0 0 24px rgba(237, 66, 69, 0.3);
+                }
+            }
+
+            .expressive-fakedeafen-button:hover {
                 transform: scale(1.05) !important;
                 animation-duration: 2s !important;
             }
+
+            /* Custom toast styles */
+            .toast-success {
+                background: linear-gradient(90deg, rgba(67, 181, 129, 0.1), rgba(52, 168, 83, 0.1)) !important;
+                border-left: 4px solid #43b581 !important;
+            }
+
+            .toast-error {
+                background: linear-gradient(90deg, rgba(237, 66, 69, 0.1), rgba(240, 71, 71, 0.1)) !important;
+                border-left: 4px solid #ed4245 !important;
+            }
+
+            .toast-info {
+                background: linear-gradient(90deg, rgba(88, 101, 242, 0.1), rgba(114, 137, 218, 0.1)) !important;
+                border-left: 4px solid #5865f2 !important;
+            }
         `;
         document.head.appendChild(style);
+
+        if (settings.store.showToasts) {
+            setTimeout(() => {
+                showInfoToast("🎉 FakeDeafen loaded! Click the glowing button to toggle FakeDeafen!");
+            }, 1000);
+        }
     },
+
     stop(): void {
         const style = document.getElementById("fakedeafen-expressive-styles");
         if (style) style.remove();
-    },
 
+        if (settings.store.showToasts) {
+            showInfoToast("FakeDeafen disabled");
+        }
+    },
 });
