@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
-import { findComponentByCodeLazy } from "@webpack";
+import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
 
 
 export let fakeD = false;
@@ -74,24 +74,50 @@ function makeDeafenIcon(useFakeState: boolean) {
 }
 
 
+const TooltipModule = findByPropsLazy("Cy", "u", "FG");
+
 function fakeDeafenToggleButton() {
+    const DeafenIcon = makeDeafenIcon(fakeD);
 
     return (
-        <Button
-            tooltipText="Fake Deafen"
-            icon={makeDeafenIcon(fakeD)}
-            role="switch"
-            aria-checked={!fakeD}
-            onClick={() => {
-                fakeD = !fakeD;
-                deafen();
-                setTimeout(deafen, 250);
+        <TooltipModule.u
+            text="Fake Deafen"
+        >
+            {tooltipProps => (
+                <button
+                    {...tooltipProps}
+                    onClick={() => {
+                        fakeD = !fakeD;
+                        deafen();
+                        setTimeout(deafen, 250);
 
-                if (settings.store.muteUponFakeDeafen)
-                    setTimeout(mute, 300);
-            }
-            }
-        />
+                        if (settings.store.muteUponFakeDeafen)
+                            setTimeout(mute, 300);
+                    }}
+                    role="switch"
+                    className="expressive-fakedeafen-button"
+                    aria-checked={!fakeD}
+                    style={{
+                        background: "linear-gradient(45deg, rgba(88, 101, 242, 0.25), rgba(114, 137, 218, 0.25))",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "40px",
+                        height: "40px",
+                        position: "relative",
+                        transition: "transform 0.2s ease",
+                        animation: "expressiveGlow 15s ease-in-out infinite",
+                        color: "white"
+                    }}
+                >
+                    <DeafenIcon /> {/* Render */}
+                </button>
+            )}
+        </TooltipModule.u>
     );
 }
 
@@ -153,5 +179,45 @@ export default definePlugin({
             }
     },
     fakeDeafenToggleButton: ErrorBoundary.wrap(fakeDeafenToggleButton, { noop: true }),
+
+    start(): void {
+
+        const style = document.createElement("style");
+        style.id = "fakedeafen-expressive-styles";
+        style.textContent = `
+            @keyframes expressiveGlow {
+                0% {
+                    box-shadow: 0 0 8px rgba(255, 0, 128, 0.4), 0 0 16px rgba(255, 0, 128, 0.2);
+                    border: 1px solid rgba(255, 0, 128, 0.3);
+                }
+                25% {
+                    box-shadow: 0 0 8px rgba(0, 255, 128, 0.4), 0 0 16px rgba(0, 255, 128, 0.2);
+                    border: 1px solid rgba(0, 255, 128, 0.3);
+                }
+                50% {
+                    box-shadow: 0 0 8px rgba(128, 0, 255, 0.4), 0 0 16px rgba(128, 0, 255, 0.2);
+                    border: 1px solid rgba(128, 0, 255, 0.3);
+                }
+                75% {
+                    box-shadow: 0 0 8px rgba(255, 128, 0, 0.4), 0 0 16px rgba(255, 128, 0, 0.2);
+                    border: 1px solid rgba(255, 128, 0, 0.3);
+                }
+                100% {
+                    box-shadow: 0 0 8px rgba(255, 0, 128, 0.4), 0 0 16px rgba(255, 0, 128, 0.2);
+                    border: 1px solid rgba(255, 0, 128, 0.3);
+                }
+            }
+
+            .fakedeafen-button:hover {
+                transform: scale(1.05) !important;
+                animation-duration: 2s !important;
+            }
+        `;
+        document.head.appendChild(style);
+    },
+    stop(): void {
+        const style = document.getElementById("fakedeafen-expressive-styles");
+        if (style) style.remove();
+    },
 
 });
