@@ -20,7 +20,7 @@ export default definePlugin({
     name: "SoundBoardLogger",
     authors: [
         Devs.Fres,
-        Devs.echo
+        Devs.LSDZaddi
     ],
     settings,
     patches: [
