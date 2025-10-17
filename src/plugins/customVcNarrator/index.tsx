@@ -116,19 +116,17 @@ function formatText(str: string, user: string, channel: string, displayName: str
         .replaceAll("{{NICKNAME}}", clean(nickname) || (nickname ? "Someone" : ""));
 }
 
-/*
 let StatusMap = {} as Record<string, {
     mute: boolean;
     deaf: boolean;
 }>;
-*/
 
 // For every user, channelId and oldChannelId will differ when moving channel.
 // Only for the local user, channelId and oldChannelId will be the same when moving channel,
 // for some ungodly reason
 let myLastChannelId: string | undefined;
 
-function getTypeAndChannelId({ channelId, oldChannelId }: VoiceStateChangeEvent, isMe: boolean) {
+function getTypeAndChannelId({ channelId, oldChannelId, userId, deaf, selfDeaf, mute, selfMute }: VoiceStateChangeEvent, isMe: boolean) {
     if (isMe && channelId !== myLastChannelId) {
         oldChannelId = myLastChannelId;
         myLastChannelId = channelId;
@@ -138,23 +136,20 @@ function getTypeAndChannelId({ channelId, oldChannelId }: VoiceStateChangeEvent,
         if (channelId) return [oldChannelId ? "move" : "join", channelId];
         if (oldChannelId) return ["leave", oldChannelId];
     }
-    /*
     if (channelId) {
         if (deaf || selfDeaf) return ["deafen", channelId];
         if (mute || selfMute) return ["mute", channelId];
         const oldStatus = StatusMap[userId];
-        if (oldStatus.deaf) return ["undeafen", channelId];
-        if (oldStatus.mute) return ["unmute", channelId];
+        if (oldStatus?.deaf) return ["undeafen", channelId];
+        if (oldStatus?.mute) return ["unmute", channelId];
     }
-    */
     return ["", ""];
 }
 
-/*
-function updateStatuses(type: string, { deaf, mute, selfDeaf, selfMute, userId, channelId }: VoiceState, isMe: boolean) {
+function updateStatuses(type: string, { deaf, mute, selfDeaf, selfMute, userId, channelId }: VoiceStateChangeEvent, isMe: boolean) {
     if (isMe && (type === "join" || type === "move")) {
         StatusMap = {};
-        const states = VoiceStateStore.getVoiceStatesForChannel(channelId!) as Record<string, VoiceState>;
+        const states = VoiceStateStore.getVoiceStatesForChannel(channelId!) as Record<string, VoiceStateChangeEvent>;
         for (const userId in states) {
             const s = states[userId];
             StatusMap[userId] = {
@@ -179,7 +174,6 @@ function updateStatuses(type: string, { deaf, mute, selfDeaf, selfMute, userId, 
         mute: mute || selfMute
     };
 }
-*/
 
 function playSample(type: string) {
     const currentUser = UserStore.getCurrentUser();
@@ -229,7 +223,7 @@ export default definePlugin({
 
                 speak(formatText(template, user, channel, displayName, nickname));
 
-                // updateStatuses(type, state, isMe);
+                updateStatuses(type, state, isMe);
             }
         },
 

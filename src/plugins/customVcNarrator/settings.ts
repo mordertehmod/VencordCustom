@@ -11,7 +11,6 @@ import { OptionType } from "@utils/types";
 import { VoiceSettingSection } from "./VoiceSetting";
 
 export const TIKTOK_VOICES = [
-    // Disney Voices
     { name: "Ghost Face", id: "en_us_ghostface", lang: "En" },
     { name: "Chewbacca", id: "en_us_chewbacca", lang: "En" },
     { name: "C3PO", id: "en_us_c3po", lang: "En" },
@@ -22,7 +21,6 @@ export const TIKTOK_VOICES = [
     { name: "Ghost Host", id: "en_male_ghosthost", lang: "En" },
     { name: "Pirate", id: "en_male_pirate", lang: "En" },
 
-    // English Voices
     { name: "English AU - Female", id: "en_au_001", lang: "En" },
     { name: "English AU - Male", id: "en_au_002", lang: "En" },
     { name: "English UK - Male 1", id: "en_uk_001", lang: "En" },
@@ -34,27 +32,23 @@ export const TIKTOK_VOICES = [
     { name: "English US - Male 3", id: "en_us_009", lang: "En" },
     { name: "English US - Male 4", id: "en_us_010", lang: "En" },
 
-    // English Voices (Other)
     { name: "Narrator", id: "en_male_narration", lang: "En" },
     { name: "Wacky", id: "en_male_funny", lang: "En" },
     { name: "Peaceful", id: "en_female_emotional", lang: "En" },
     { name: "Serious", id: "en_male_cody", lang: "En" },
 
-    // Western European
     { name: "French - Male 1", id: "fr_001", lang: "En" },
     { name: "French - Male 2", id: "fr_002", lang: "En" },
     { name: "German - Female", id: "de_001", lang: "En" },
     { name: "German - Male", id: "de_002", lang: "En" },
     { name: "Spanish - Male", id: "es_002", lang: "En" },
 
-    // South American Languages
     { name: "Spanish MX - Male", id: "es_mx_002", lang: "En, Es" },
     { name: "Portuguese BR - Female 1", id: "br_001", lang: "En, Pt" },
     { name: "Portuguese BR - Female 2", id: "br_003", lang: "En, Pt" },
     { name: "Portuguese BR - Female 3", id: "br_004", lang: "En, Pt" },
     { name: "Portuguese BR - Male", id: "br_005", lang: "En, Pt" },
 
-    // Asian Languages
     { name: "Indonesian - Female", id: "id_001", lang: "En" },
     { name: "Japanese - Female 1", id: "jp_001", lang: "En Ja" },
     { name: "Japanese - Female 2", id: "jp_003", lang: "En Ja" },
@@ -64,7 +58,6 @@ export const TIKTOK_VOICES = [
     { name: "Korean - Female", id: "kr_003", lang: "En Ko" },
     { name: "Korean - Male 2", id: "kr_004", lang: "En Ko" },
 
-    // Vocals
     { name: "Alto", id: "en_female_f08_salut_damour", lang: "" },
     { name: "Tenor", id: "en_male_m03_lobby", lang: "" },
     { name: "Sunshine Soon", id: "en_male_m03_sunshine_soon", lang: "" },
@@ -145,7 +138,7 @@ export const settings = definePluginSettings({
     unmuteMessage: {
         type: OptionType.STRING,
         description: "Unmute Message (only self for now)",
-        default: "{{USER}} unmuted"
+        default: "{{USER}} un-muted"
     },
     deafenMessage: {
         type: OptionType.STRING,
@@ -155,6 +148,6 @@ export const settings = definePluginSettings({
     undeafenMessage: {
         type: OptionType.STRING,
         description: "Undeafen Message (only self for now)",
-        default: "{{USER}} undeafened"
+        default: "{{USER}} un-deafened"
     }
 });
