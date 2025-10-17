@@ -52,6 +52,14 @@ export const Devs = /* #__PURE__*/ Object.freeze({
         name: "desu",
         id: 526331463709360141n
     },
+    Fres: {
+        name: "fres",
+        id: 843448897737064448n
+    },
+    echo: {
+        name: "ECHO",
+        id: 712639419785412668n
+    },
     Ven: {
         name: "V",
         id: 343383572805058560n
