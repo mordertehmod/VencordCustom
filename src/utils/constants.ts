@@ -44,6 +44,14 @@ export interface Dev {
  * If you are fine with attribution but don't want the badge, add badge: false
  */
 export const Devs = /* #__PURE__*/ Object.freeze({
+    LSDZaddi: {
+        name: "LSD𝓩𝓪𝓭𝓭𝓲",
+        id: 413072381087580166n
+    },
+    desu: {
+        name: "desu",
+        id: 526331463709360141n
+    },
     Ven: {
         name: "V",
         id: 343383572805058560n
@@ -273,6 +281,10 @@ export const Devs = /* #__PURE__*/ Object.freeze({
     skyevg: {
         name: "skyevg",
         id: 1090310844283363348n
+    },
+    philhk: {
+        name: "philhk",
+        id: 305288513941667851n
     },
     Dziurwa: {
         name: "Dziurwa",

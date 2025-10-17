@@ -158,6 +158,7 @@ function makeBypassPatches(): Omit<Patch, "plugin"> {
         { func: "canUseCustomStickersEverywhere", predicate: () => settings.store.enableStickerBypass },
         { func: "canUseHighVideoUploadQuality", predicate: () => settings.store.enableStreamQualityBypass },
         { func: "canStreamQuality", predicate: () => settings.store.enableStreamQualityBypass },
+        { func: "canUseSoundboardEverywhere" },
         { func: "canUseClientThemes" },
         { func: "canUsePremiumAppIcons" }
     ];
@@ -174,7 +175,7 @@ function makeBypassPatches(): Omit<Patch, "plugin"> {
 
 export default definePlugin({
     name: "FakeNitro",
-    authors: [Devs.Arjix, Devs.D3SOX, Devs.Ven, Devs.fawn, Devs.captain, Devs.Nuckyz, Devs.AutumnVN, Devs.sadan],
+    authors: [Devs.Arjix, Devs.D3SOX, Devs.Ven, Devs.fawn, Devs.captain, Devs.Nuckyz, Devs.AutumnVN, Devs.sadan, Devs.LSDZaddi],
     description: "Allows you to send fake emojis/stickers, use nitro themes, and stream in nitro quality",
     dependencies: ["MessageEventsAPI"],
 
